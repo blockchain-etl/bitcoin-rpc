@@ -23,7 +23,7 @@
 import decimal
 import json
 
-from bitcoinrpc.rpc.request import make_post_request
+from bitcoinrpc.request import make_post_request
 
 
 class BitcoinRpc:
@@ -33,11 +33,17 @@ class BitcoinRpc:
         self.timeout = timeout
 
     def batch(self, commands):
-        rpc_calls = []
-        for command in commands:
-            m = command.pop(0)
-            rpc_calls.append({"jsonrpc": "2.0", "method": m, "params": command, "id": "1"})
+        rpc_calls = [
+            {
+                "jsonrpc": "2.0", 
+                "method": m, 
+                "params": command, 
+                "id": str(idx) for idx, command in enumerate(commands)
+            }
+        ]
+
         text = json.dumps(rpc_calls)
+
         request_data = text.encode('utf-8')
         raw_response = make_post_request(
             self.provider_uri,
@@ -52,6 +58,7 @@ class BitcoinRpc:
             if resp_item.get('result') is None:
                 raise ValueError('"result" is None in the JSON RPC response {}. Request: {}', resp_item.get('error'), text)
             result.append(resp_item.get('result'))
+            # sort
         return result
 
     def getblockhash(self, param):
